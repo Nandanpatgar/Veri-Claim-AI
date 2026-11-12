@@ -1,3 +1,4 @@
+
 """
 Data Contracts Module
 
@@ -7,8 +8,9 @@ Contracts:
 1. Claim
 2. Evidence
 3. EvidenceVerification
-4. VerificationResult
-5. VerificationReport
+4. SourceReliability
+5. VerificationResult
+6. VerificationReport
 """
 
 from dataclasses import dataclass, field
@@ -31,6 +33,20 @@ VALID_NLI_LABELS = {
     "ENTAILMENT",
     "CONTRADICTION",
     "NEUTRAL"
+}
+
+VALID_RELIABILITY_CATEGORIES = {
+    "HIGH",
+    "MEDIUM",
+    "LOW"
+}
+
+VALID_RELIABILITY_FACTORS = {
+    "domain_reputation",
+    "source_category",
+    "https",
+    "publisher_identification",
+    "url_transparency"
 }
 
 
@@ -170,6 +186,67 @@ class EvidenceVerification:
             raise ValueError(
                 "NLI confidence must match the predicted label score."
             )
+
+
+# ==========================================
+# SOURCE RELIABILITY DATA CONTRACT
+# ==========================================
+
+@dataclass
+class SourceReliability:
+
+    evidence_id: str
+    reliability_score: float
+    reliability_category: str
+    reliability_factors: dict
+    explanation: str
+
+    def __post_init__(self):
+
+        if (
+            not isinstance(self.evidence_id, str)
+            or not self.evidence_id.strip()
+        ):
+            raise ValueError("Evidence ID cannot be empty.")
+
+        if (
+            isinstance(self.reliability_score, bool)
+            or not isinstance(self.reliability_score, (int, float))
+            or not isfinite(self.reliability_score)
+            or not 0.0 <= self.reliability_score <= 1.0
+        ):
+            raise ValueError(
+                "Reliability score must be between 0 and 1."
+            )
+
+        if self.reliability_category not in VALID_RELIABILITY_CATEGORIES:
+            raise ValueError("Invalid reliability category.")
+
+        if not isinstance(self.reliability_factors, dict):
+            raise ValueError("Reliability factors must be a dictionary.")
+
+        if set(self.reliability_factors.keys()) != VALID_RELIABILITY_FACTORS:
+            raise ValueError(
+                "Reliability factors must contain exactly the five required factors."
+            )
+
+        for factor, score in self.reliability_factors.items():
+
+            if (
+                isinstance(score, bool)
+                or not isinstance(score, (int, float))
+                or not isfinite(score)
+                or not 0.0 <= score <= 1.0
+            ):
+                raise ValueError(
+                    f"Invalid score for reliability factor: {factor}"
+                )
+
+        if (
+            not isinstance(self.explanation, str)
+            or not self.explanation.strip()
+        ):
+            raise ValueError("Reliability explanation cannot be empty.")
 
 
 # ==========================================
